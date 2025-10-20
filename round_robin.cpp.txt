@@ -1,0 +1,133 @@
+// round_robin.cpp
+// Round Robin CPU Scheduling
+// Works on Dev-C++
+// Non-preemptive quantum-based rotation
+
+#include <iostream>
+#include <iomanip>
+#include <queue>
+#include <vector>
+using namespace std;
+
+struct Process {
+    int pid;
+    int arrival;
+    int burst;
+    int remaining;
+    int completion;
+    int turnaround;
+    int waiting;
+};
+
+int main() {
+    int n, quantum;
+    cout << "Enter number of processes: ";
+    cin >> n;
+
+    vector<Process> p(n);
+
+    for (int i = 0; i < n; ++i) {
+        p[i].pid = i + 1;
+        cout << "Enter Arrival Time for P" << p[i].pid << ": ";
+        cin >> p[i].arrival;
+        cout << "Enter Burst Time for P" << p[i].pid << ": ";
+        cin >> p[i].burst;
+        p[i].remaining = p[i].burst;
+    }
+
+    cout << "Enter Time Quantum: ";
+    cin >> quantum;
+
+    queue<int> ready;
+    vector<int> gantt; // for visualization
+    int current_time = 0, completed = 0;
+    vector<bool> in_queue(n, false);
+
+    // Sort by arrival
+    sort(p.begin(), p.end(), [](Process &a, Process &b) {
+        return a.arrival < b.arrival;
+    });
+
+    ready.push(0);
+    in_queue[0] = true;
+
+    while (!ready.empty()) {
+        int i = ready.front();
+        ready.pop();
+        gantt.push_back(p[i].pid);
+
+        if (p[i].remaining <= quantum) {
+            current_time += p[i].remaining;
+            p[i].remaining = 0;
+            p[i].completion = current_time;
+            completed++;
+        } else {
+            p[i].remaining -= quantum;
+            current_time += quantum;
+        }
+
+        // Enqueue new arrivals
+        for (int j = 0; j < n; ++j) {
+            if (!in_queue[j] && p[j].arrival <= current_time && p[j].remaining > 0) {
+                ready.push(j);
+                in_queue[j] = true;
+            }
+        }
+
+        // If process not finished, requeue it
+        if (p[i].remaining > 0) {
+            ready.push(i);
+        }
+
+        // If queue empty but processes remain, advance to next arrival
+        if (ready.empty()) {
+            for (int j = 0; j < n; ++j) {
+                if (p[j].remaining > 0) {
+                    ready.push(j);
+                    in_queue[j] = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Calculate Turnaround & Waiting Times
+    double total_tat = 0, total_wt = 0;
+    for (int i = 0; i < n; ++i) {
+        p[i].turnaround = p[i].completion - p[i].arrival;
+        p[i].waiting = p[i].turnaround - p[i].burst;
+        total_tat += p[i].turnaround;
+        total_wt += p[i].waiting;
+    }
+
+    // Display results
+    cout << "\nRound Robin Scheduling Results:\n";
+    cout << left << setw(8) << "PID"
+         << setw(12) << "Arrival"
+         << setw(10) << "Burst"
+         << setw(12) << "Completion"
+         << setw(14) << "Turnaround"
+         << setw(10) << "Waiting" << "\n";
+
+    for (auto &pr : p) {
+        cout << left << setw(8) << pr.pid
+             << setw(12) << pr.arrival
+             << setw(10) << pr.burst
+             << setw(12) << pr.completion
+             << setw(14) << pr.turnaround
+             << setw(10) << pr.waiting << "\n";
+    }
+
+    cout << fixed << setprecision(2);
+    cout << "\nAverage Turnaround Time = " << (total_tat / n);
+    cout << "\nAverage Waiting Time    = " << (total_wt / n) << "\n";
+
+    // Gantt Chart
+    cout << "\nGantt Chart (Order of Execution):\n|";
+    for (auto pid : gantt) {
+        cout << "  P" << pid << "  |";
+    }
+    cout << "\n";
+
+    return 0;
+}

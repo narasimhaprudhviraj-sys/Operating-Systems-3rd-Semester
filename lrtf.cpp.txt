@@ -1,0 +1,115 @@
+// lrtf.cpp
+// Longest Remaining Time First (Preemptive Scheduling)
+// Reverse of SRTF — works perfectly on Dev-C++
+
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+struct Process {
+    int pid;
+    int arrival;
+    int burst;
+    int remaining;
+    int completion;
+    int turnaround;
+    int waiting;
+};
+
+int main() {
+    int n;
+    cout << "Enter number of processes: ";
+    cin >> n;
+
+    vector<Process> p(n);
+
+    for (int i = 0; i < n; ++i) {
+        p[i].pid = i + 1;
+        cout << "Enter Arrival Time for P" << p[i].pid << ": ";
+        cin >> p[i].arrival;
+        cout << "Enter Burst Time for P" << p[i].pid << ": ";
+        cin >> p[i].burst;
+        p[i].remaining = p[i].burst;
+        p[i].completion = p[i].turnaround = p[i].waiting = 0;
+    }
+
+    int completed = 0, current_time = 0;
+    vector<int> gantt;
+    double total_tat = 0, total_wt = 0;
+
+    while (completed < n) {
+        int idx = -1;
+        int max_remaining = -1;
+
+        // Choose process with largest remaining time
+        for (int i = 0; i < n; ++i) {
+            if (p[i].arrival <= current_time && p[i].remaining > 0) {
+                if (p[i].remaining > max_remaining) {
+                    max_remaining = p[i].remaining;
+                    idx = i;
+                } else if (p[i].remaining == max_remaining) {
+                    if (p[i].arrival < p[idx].arrival)
+                        idx = i;
+                }
+            }
+        }
+
+        if (idx != -1) {
+            gantt.push_back(p[idx].pid);
+            p[idx].remaining--;
+            current_time++;
+
+            if (p[idx].remaining == 0) {
+                completed++;
+                p[idx].completion = current_time;
+                p[idx].turnaround = p[idx].completion - p[idx].arrival;
+                p[idx].waiting = p[idx].turnaround - p[idx].burst;
+
+                total_tat += p[idx].turnaround;
+                total_wt += p[idx].waiting;
+            }
+        } else {
+            gantt.push_back(-1); // CPU idle
+            current_time++;
+        }
+    }
+
+    // Output results
+    cout << "\nLRTF Scheduling Results:\n";
+    cout << left << setw(8) << "PID"
+         << setw(12) << "Arrival"
+         << setw(10) << "Burst"
+         << setw(12) << "Completion"
+         << setw(14) << "Turnaround"
+         << setw(10) << "Waiting" << "\n";
+
+    for (auto &pr : p) {
+        cout << left << setw(8) << pr.pid
+             << setw(12) << pr.arrival
+             << setw(10) << pr.burst
+             << setw(12) << pr.completion
+             << setw(14) << pr.turnaround
+             << setw(10) << pr.waiting << "\n";
+    }
+
+    cout << fixed << setprecision(2);
+    cout << "\nAverage Turnaround Time = " << (total_tat / n);
+    cout << "\nAverage Waiting Time    = " << (total_wt / n) << "\n";
+
+    // Gantt Chart
+    cout << "\nGantt Chart (each unit of time):\n|";
+    for (int i = 0; i < gantt.size(); ++i) {
+        if (gantt[i] == -1)
+            cout << "  Idle  |";
+        else
+            cout << "  P" << gantt[i] << "  |";
+    }
+    cout << "\n0";
+    for (int i = 1; i <= gantt.size(); ++i)
+        cout << setw(7) << i;
+    cout << "\n";
+
+    return 0;
+}

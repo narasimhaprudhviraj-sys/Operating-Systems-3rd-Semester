@@ -1,0 +1,119 @@
+// priority_scheduling.cpp
+// Non-Preemptive Priority Scheduling
+// Works perfectly on Dev-C++
+
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+struct Process {
+    int pid;
+    int arrival;
+    int burst;
+    int priority;
+    int start;
+    int completion;
+    int turnaround;
+    int waiting;
+    bool done;
+};
+
+int main() {
+    int n;
+    cout << "Enter number of processes: ";
+    cin >> n;
+
+    vector<Process> p(n);
+
+    for (int i = 0; i < n; ++i) {
+        p[i].pid = i + 1;
+        cout << "Enter Arrival Time for P" << p[i].pid << ": ";
+        cin >> p[i].arrival;
+        cout << "Enter Burst Time for P" << p[i].pid << ": ";
+        cin >> p[i].burst;
+        cout << "Enter Priority (smaller number = higher priority): ";
+        cin >> p[i].priority;
+        p[i].done = false;
+    }
+
+    int current_time = 0, completed = 0;
+    double total_tat = 0, total_wt = 0;
+
+    while (completed < n) {
+        int idx = -1;
+        int highest_priority = 999999;
+
+        for (int i = 0; i < n; ++i) {
+            if (p[i].arrival <= current_time && !p[i].done) {
+                if (p[i].priority < highest_priority) {
+                    highest_priority = p[i].priority;
+                    idx = i;
+                } else if (p[i].priority == highest_priority) {
+                    if (p[i].arrival < p[idx].arrival)
+                        idx = i;
+                }
+            }
+        }
+
+        if (idx != -1) {
+            p[idx].start = current_time;
+            p[idx].completion = p[idx].start + p[idx].burst;
+            p[idx].turnaround = p[idx].completion - p[idx].arrival;
+            p[idx].waiting = p[idx].turnaround - p[idx].burst;
+
+            total_tat += p[idx].turnaround;
+            total_wt += p[idx].waiting;
+
+            current_time = p[idx].completion;
+            p[idx].done = true;
+            completed++;
+        } else {
+            current_time++;
+        }
+    }
+
+    cout << "\nPriority Scheduling Results:\n";
+    cout << left << setw(8) << "PID"
+         << setw(12) << "Arrival"
+         << setw(10) << "Burst"
+         << setw(10) << "Priority"
+         << setw(10) << "Start"
+         << setw(12) << "Completion"
+         << setw(14) << "Turnaround"
+         << setw(10) << "Waiting" << "\n";
+
+    for (auto &pr : p) {
+        cout << left << setw(8) << pr.pid
+             << setw(12) << pr.arrival
+             << setw(10) << pr.burst
+             << setw(10) << pr.priority
+             << setw(10) << pr.start
+             << setw(12) << pr.completion
+             << setw(14) << pr.turnaround
+             << setw(10) << pr.waiting << "\n";
+    }
+
+    cout << fixed << setprecision(2);
+    cout << "\nAverage Turnaround Time = " << (total_tat / n);
+    cout << "\nAverage Waiting Time    = " << (total_wt / n) << "\n";
+
+    // Gantt Chart
+    cout << "\nGantt Chart:\n|";
+    vector<Process> gantt = p;
+    sort(gantt.begin(), gantt.end(), [](const Process &a, const Process &b) {
+        return a.start < b.start;
+    });
+    for (auto &g : gantt) {
+        cout << "  P" << g.pid << "  |";
+    }
+    cout << "\n" << gantt[0].start << " ";
+    for (auto &g : gantt) {
+        cout << setw(6) << g.completion;
+    }
+    cout << "\n";
+
+    return 0;
+}

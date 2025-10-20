@@ -1,0 +1,123 @@
+// fcfs_devcpp.cpp
+// FCFS Scheduling (First-Come, First-Served)
+// Compatible with Dev-C++ / typical g++ compilers
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <iomanip>
+
+using namespace std;
+
+struct Process {
+    int pid;        // process id
+    int arrival;    // arrival time
+    int burst;      // burst time (CPU time)
+    int start;      // start time
+    int completion; // completion time
+    int turnaround; // turnaround time
+    int waiting;    // waiting time
+};
+
+int main() {
+    int n;
+    cout << "Enter number of processes: ";
+    if (!(cin >> n) || n <= 0) {
+        cout << "Invalid number of processes.\n";
+        return 1;
+    }
+
+    vector<Process> p(n);
+
+    cout << "Will you enter process IDs? (y/n): ";
+    char choice;
+    cin >> choice;
+    bool customIDs = (choice == 'y' || choice == 'Y');
+
+    for (int i = 0; i < n; ++i) {
+        if (customIDs) {
+            cout << "Process " << (i+1) << " ID: ";
+            cin >> p[i].pid;
+        } else {
+            p[i].pid = i + 1; // default ID
+        }
+        cout << "Arrival time for PID " << p[i].pid << ": ";
+        cin >> p[i].arrival;
+        cout << "Burst time for PID " << p[i].pid << ": ";
+        cin >> p[i].burst;
+
+        // Initialize other fields
+        p[i].start = p[i].completion = p[i].turnaround = p[i].waiting = 0;
+    }
+
+    // Sort by arrival time (stable sort to preserve input order for same arrival)
+    stable_sort(p.begin(), p.end(), [](const Process &a, const Process &b) {
+        return a.arrival < b.arrival;
+    });
+
+    int current_time = 0;
+    double total_turnaround = 0.0;
+    double total_waiting = 0.0;
+
+    // FCFS scheduling simulation
+    for (int i = 0; i < n; ++i) {
+        if (current_time < p[i].arrival) {
+            // CPU is idle until the process arrives
+            current_time = p[i].arrival;
+        }
+        p[i].start = current_time;
+        p[i].completion = p[i].start + p[i].burst;
+        p[i].turnaround = p[i].completion - p[i].arrival;
+        p[i].waiting = p[i].start - p[i].arrival;
+
+        current_time = p[i].completion;
+
+        total_turnaround += p[i].turnaround;
+        total_waiting += p[i].waiting;
+    }
+
+    // Output table
+    cout << "\nFCFS Scheduling Results:\n";
+    cout << left << setw(8) << "PID"
+         << setw(12) << "Arrival"
+         << setw(10) << "Burst"
+         << setw(10) << "Start"
+         << setw(12) << "Completion"
+         << setw(14) << "Turnaround"
+         << setw(10) << "Waiting" << "\n";
+
+    for (int i = 0; i < n; ++i) {
+        cout << left << setw(8) << p[i].pid
+             << setw(12) << p[i].arrival
+             << setw(10) << p[i].burst
+             << setw(10) << p[i].start
+             << setw(12) << p[i].completion
+             << setw(14) << p[i].turnaround
+             << setw(10) << p[i].waiting << "\n";
+    }
+
+    double avg_tat = total_turnaround / n;
+    double avg_wt = total_waiting / n;
+
+    cout << fixed << setprecision(2);
+    cout << "\nAverage Turnaround Time = " << avg_tat << "\n";
+    cout << "Average Waiting Time    = " << avg_wt << "\n";
+
+    // Simple Gantt-like chart (text)
+    cout << "\nGantt Chart (time shown below):\n";
+    // Print process sequence (by PID)
+    cout << "|";
+    for (int i = 0; i < n; ++i) {
+        cout << "  P" << p[i].pid << "  |";
+    }
+    cout << "\n";
+
+    // Print time markers
+    cout << p[0].arrival << " ";
+    for (int i = 0; i < n; ++i) {
+        cout << setw(6) << p[i].completion;
+    }
+    cout << "\n";
+
+    return 0;
+}

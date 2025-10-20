@@ -1,0 +1,135 @@
+// sjf_devcpp.cpp
+// Shortest Job First (Non-Preemptive) Scheduling Algorithm
+// Compatible with Dev-C++
+
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+struct Process {
+    int pid;
+    int arrival;
+    int burst;
+    int start;
+    int completion;
+    int turnaround;
+    int waiting;
+    bool done;
+};
+
+int main() {
+    int n;
+    cout << "Enter number of processes: ";
+    cin >> n;
+
+    vector<Process> p(n);
+
+    cout << "Will you enter process IDs? (y/n): ";
+    char ch;
+    cin >> ch;
+    bool customID = (ch == 'y' || ch == 'Y');
+
+    for (int i = 0; i < n; ++i) {
+        if (customID) {
+            cout << "Enter Process ID: ";
+            cin >> p[i].pid;
+        } else {
+            p[i].pid = i + 1;
+        }
+        cout << "Enter Arrival Time for P" << p[i].pid << ": ";
+        cin >> p[i].arrival;
+        cout << "Enter Burst Time for P" << p[i].pid << ": ";
+        cin >> p[i].burst;
+
+        p[i].done = false;
+    }
+
+    int completed = 0;
+    int current_time = 0;
+    double total_tat = 0, total_wt = 0;
+
+    cout << "\n--- SJF Scheduling Simulation ---\n";
+
+    while (completed < n) {
+        int idx = -1;
+        int min_burst = 999999;
+
+        // Find process with min burst among arrived & not done
+        for (int i = 0; i < n; ++i) {
+            if (p[i].arrival <= current_time && !p[i].done) {
+                if (p[i].burst < min_burst) {
+                    min_burst = p[i].burst;
+                    idx = i;
+                } else if (p[i].burst == min_burst) {
+                    // Tie-breaker: earlier arrival
+                    if (p[i].arrival < p[idx].arrival)
+                        idx = i;
+                }
+            }
+        }
+
+        if (idx != -1) {
+            // Process found
+            p[idx].start = current_time;
+            p[idx].completion = p[idx].start + p[idx].burst;
+            p[idx].turnaround = p[idx].completion - p[idx].arrival;
+            p[idx].waiting = p[idx].turnaround - p[idx].burst;
+
+            total_tat += p[idx].turnaround;
+            total_wt += p[idx].waiting;
+
+            current_time = p[idx].completion;
+            p[idx].done = true;
+            completed++;
+        } else {
+            // No process arrived yet — CPU idle
+            current_time++;
+        }
+    }
+
+    // Print Table
+    cout << "\nSJF Scheduling Results:\n";
+    cout << left << setw(8) << "PID"
+         << setw(12) << "Arrival"
+         << setw(10) << "Burst"
+         << setw(10) << "Start"
+         << setw(12) << "Completion"
+         << setw(14) << "Turnaround"
+         << setw(10) << "Waiting" << "\n";
+
+    for (auto &proc : p) {
+        cout << left << setw(8) << proc.pid
+             << setw(12) << proc.arrival
+             << setw(10) << proc.burst
+             << setw(10) << proc.start
+             << setw(12) << proc.completion
+             << setw(14) << proc.turnaround
+             << setw(10) << proc.waiting << "\n";
+    }
+
+    cout << fixed << setprecision(2);
+    cout << "\nAverage Turnaround Time = " << (total_tat / n);
+    cout << "\nAverage Waiting Time    = " << (total_wt / n) << "\n";
+
+    // Gantt Chart
+    cout << "\nGantt Chart:\n";
+    cout << "|";
+    // sort by start time for Gantt display
+    vector<Process> gantt = p;
+    sort(gantt.begin(), gantt.end(), [](const Process &a, const Process &b) {
+        return a.start < b.start;
+    });
+    for (auto &g : gantt) {
+        cout << "  P" << g.pid << "  |";
+    }
+    cout << "\n" << gantt[0].start << " ";
+    for (auto &g : gantt) {
+        cout << setw(6) << g.completion;
+    }
+    cout << "\n";
+
+    return 0;
+}
